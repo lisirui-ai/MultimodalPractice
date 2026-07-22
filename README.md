@@ -84,6 +84,7 @@ MultimodalPractice/
 ├── 🖼 cat.png                         # 实验用图（Notebook 01/02）（gitignored）
 ├── 🖼 dog.jpg                         # 实验用图（Notebook 02）（gitignored）
 ├── 🖼 SD_generated.png                # Stable Diffusion 生成示例图（gitignored）
+├── 📄 requirements.txt            # Python 依赖清单（Python 3.14.5）
 ├── 📄 .gitignore
 ├── 📄 LICENSE
 └── 📄 README.md
@@ -330,21 +331,22 @@ MultimodalPractice/
 
 > **说明**：所有 Notebook 共用同一套环境，按需安装对应模块依赖即可。
 
-**核心依赖** · Python 3.10+
+**核心依赖** · Python 3.14.5
 
-| 包名            | 用途                                          |
-| ------------- | ------------------------------------------- |
-| `torch`       | 深度学习框架核心                                    |
-| `torchvision` | 图像预处理与视觉数据集工具                               |
-| `transformers` | HuggingFace 模型加载与推理（ViT / CLIP / BLIP / Qwen3VL） |
-| `diffusers`   | Stable Diffusion Pipeline（Notebook 08）      |
-| `accelerate`  | 混合精度与设备管理加速                                 |
-| `modelscope`  | ModelScope 模型下载与缓存（Notebook 06/07/08）       |
-| `torchinfo`   | 模型参数统计与 tensor shape 可视化（Notebook 06.2）     |
-| `torchviz`    | autograd 计算图 SVG 导出（Notebook 06.3）          |
-| `Pillow`      | 图像读取与预处理                                    |
-| `matplotlib`  | 图像展示与可视化                                    |
-| `numpy`       | 数值计算基础库                                     |
+| 包名                     | 版本           | 用途                                                          |
+| ---------------------- | ------------ | ----------------------------------------------------------- |
+| `torch`                | 2.12.0+cu132 | 深度学习框架核心（CUDA 13.2 加速）                                     |
+| `torchvision`          | 0.27.0+cu132 | 图像预处理与视觉数据集工具                                               |
+| `transformers`         | 5.14.1       | HuggingFace 模型加载与推理（ViT / CLIP / BLIP / Qwen3-VL）          |
+| `diffusers`            | 0.39.0       | Stable Diffusion Pipeline（Notebook 08）                     |
+| `accelerate`           | 1.14.0       | 混合精度与设备管理加速                                                 |
+| `modelscope`           | 1.38.1       | ModelScope 模型下载与缓存（Notebook 06/07/08）                      |
+| `sentence-transformers` | 5.6.0        | 句向量编码与语义相似度计算                                               |
+| `torchinfo`            | 1.8.0        | 模型参数统计与 tensor shape 可视化（Notebook 06.2）                    |
+| `torchviz`             | 0.0.3        | autograd 计算图 SVG 导出（Notebook 06.3）                        |
+| `matplotlib`           | 3.10.9       | 图像展示与可视化                                                    |
+| `numpy`                | 2.4.6        | 数值计算基础库                                                     |
+| `pillow`               | 12.2.0       | 图像读取、格式转换与预处理                                               |
 
 > ⚠️ Notebook 06.3（torchviz）额外需要系统级 **Graphviz**：
 > ```bash
@@ -367,7 +369,9 @@ cd MultimodalPractice
 **2. 安装依赖**
 
 ```bash
-pip install torch torchvision transformers diffusers accelerate modelscope torchinfo torchviz Pillow matplotlib numpy
+# --extra-index-url 在 PyPI 基础上追加 PyTorch 官方 CUDA wheel 源
+# 使 torch==2.12.0+cu132 / torchvision==0.27.0+cu132 与其余包可一次性安装
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu132
 ```
 
 **3. 准备模型权重**
