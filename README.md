@@ -362,7 +362,7 @@ MultimodalPractice/
 **1. 克隆仓库**
 
 ```bash
-git clone https://github.com/your-username/MultimodalPractice.git
+git clone git@github.com:lisirui-ai/MultimodalPractice.git
 cd MultimodalPractice
 ```
 
