@@ -217,6 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 model_cache/
-*.png
 *.jpg
 torchviz_output/
