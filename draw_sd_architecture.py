@@ -210,15 +210,16 @@ def draw_vae():
         if i > 0: av(ax, EX, ey[-2]-0.02, ey[-1]+BH+0.02)
         cur -= step
 
-    grp(ax, EL-.3, ey[2]-.2, BW+.6, (ey[2]-ey[3])+BH+.4,
+    # 分组框 y 起点必须用组内最低块（最小 y）的 bottom-y，而非最高块
+    grp(ax, EL-.3, ey[3]-.2, BW+.6, (ey[2]-ey[3])+BH+.4,
         "DownBlock①  128ch  512→256", "#EEE8DD")
-    grp(ax, EL-.3, ey[4]-.2, BW+.6, (ey[4]-ey[6])+BH+.4,
+    grp(ax, EL-.3, ey[6]-.2, BW+.6, (ey[4]-ey[6])+BH+.4,
         "DownBlock②  128→256ch  256→128", "#EEE8DD")
-    grp(ax, EL-.3, ey[7]-.2, BW+.6, (ey[7]-ey[9])+BH+.4,
+    grp(ax, EL-.3, ey[9]-.2, BW+.6, (ey[7]-ey[9])+BH+.4,
         "DownBlock③  256→512ch  128→64", "#EEE8DD")
     grp(ax, EL-.3, ey[10]-.2, BW+.6, BH+.4,
         "DownBlock④  512ch  64×64  无下采样", "#EEE8DD")
-    grp(ax, EL-.3, ey[11]-.2, BW+.6, (ey[11]-ey[13])+BH+.4,
+    grp(ax, EL-.3, ey[13]-.2, BW+.6, (ey[11]-ey[13])+BH+.4,
         "MidBlock  512ch  64×64", "#E0D8F0")
 
     # 重参数化
@@ -228,26 +229,30 @@ def draw_vae():
             ha="center", fontsize=9.5, color="#5D4037", fontweight="bold",
             bbox=dict(fc="#FFF8E1", ec="#FF8F00", lw=1.1,
                       boxstyle="round,pad=0.3"))
-    rpy = qy - 1.4
+    # rpy：μ/σ 块底边，需留出足够空间容纳上方分割文字（文字中心 qy-0.52，含 bbox 约 0.7 高）
+    rpy = qy - 2.2
     sw = BW/2 - 0.3
     blk(ax, EL+0.1, rpy, sw, BH,
         ["μ  均值", "[B, 4, 64, 64]"], base=C["rep"], fs=9.5)
     blk(ax, EL+sw+0.5, rpy, sw, BH,
         ["log σ²  对数方差", "[B, 4, 64, 64]"], base=C["rep"], fs=9.5)
+    # 曲线箭头：从分割文字下方指向 μ/σ 块顶边（qy-0.95 > qy-1.2，向下）
     ac(ax, EX-.4, qy-0.95, EL+0.1+sw/2, rpy+BH,
        col="#8B6914", lw=1.4, rad=-0.2)
     ac(ax, EX+.4, qy-0.95, EL+sw+0.5+sw/2, rpy+BH,
        col="#8B6914", lw=1.4, rad=0.2)
 
-    zy = rpy - 1.35
-    ax.text(EX, rpy-0.58,
+    # zy：latent z 块底边，需留出空间容纳下方重参数化文字及箭头
+    zy = rpy - 2.5
+    ax.text(EX, rpy-0.65,
             "重参数化：z = μ + σ·ε，  ε ~ N(0, I)",
             ha="center", fontsize=10, color="#5D4037", fontweight="bold",
             bbox=dict(fc="#FFF8E1", ec="#FF8F00", lw=1.1,
                       boxstyle="round,pad=0.32"))
     blk(ax, EL+2.0, zy, BW-4.0, BH,
         ["latent  z  (采样)", "[B, 4, 64, 64]"], base=C["io"], fs=10)
-    av(ax, EX, rpy-0.92, zy+BH, col="#5D4037")
+    # 垂直箭头：从重参数化说明下方（rpy-1.5）指向 latent z 顶边（向下）
+    av(ax, EX, rpy-1.5, zy+BH, col="#5D4037")
 
     # ── 解码器步骤 ──────────────────────────────────
     dec = [
@@ -294,15 +299,16 @@ def draw_vae():
         if i > 0: av(ax, DX, dy[-2]-0.02, dy[-1]+BH+0.02)
         cur -= step
 
-    grp(ax, DL-.3, dy[3]-.2, BW+.6, (dy[3]-dy[5])+BH+.4,
+    # 同上：y 起点用组内最低块（最小 y）的 bottom-y
+    grp(ax, DL-.3, dy[5]-.2, BW+.6, (dy[3]-dy[5])+BH+.4,
         "MidBlock  512ch  64×64", "#E0D8F0")
-    grp(ax, DL-.3, dy[6]-.2, BW+.6, (dy[6]-dy[7])+BH+.4,
+    grp(ax, DL-.3, dy[7]-.2, BW+.6, (dy[6]-dy[7])+BH+.4,
         "UpBlock①  512ch  64→128", "#D8EDD8")
-    grp(ax, DL-.3, dy[8]-.2, BW+.6, (dy[8]-dy[9])+BH+.4,
+    grp(ax, DL-.3, dy[9]-.2, BW+.6, (dy[8]-dy[9])+BH+.4,
         "UpBlock②  512ch  128→256", "#D8EDD8")
-    grp(ax, DL-.3, dy[10]-.2, BW+.6, (dy[10]-dy[12])+BH+.4,
+    grp(ax, DL-.3, dy[12]-.2, BW+.6, (dy[10]-dy[12])+BH+.4,
         "UpBlock③  512→256ch  256→512", "#D8EDD8")
-    grp(ax, DL-.3, dy[13]-.2, BW+.6, (dy[13]-dy[14])+BH+.4,
+    grp(ax, DL-.3, dy[14]-.2, BW+.6, (dy[13]-dy[14])+BH+.4,
         "UpBlock④  256→128ch  无上采样", "#D8EDD8")
 
     # latent z → decoder 连线
@@ -719,14 +725,16 @@ def draw_unet():
         grp(ax, EL-0.3, y_bot-0.2, BW+0.6,
             y_top-y_bot+0.4, lbl, fc=fc, ec=ec, fs=8)
 
-    if 14 in enc_ys:
-        enc_grp(12, 14, "CrossAttnDownBlock①  [ch=320, 64×64→32×32]",
+    # enc_grp(p_top, p_bot)：p_top 为组内最高行 pos（y 最大），p_bot 为最低行 pos（y 最小）
+    # 每个 CrossAttnDownBlock 含：2 个 ResNet+CrossAttn（上）+ 1 个 Downsample（下）
+    if 13 in enc_ys and 10 in enc_ys:
+        enc_grp(13, 10, "CrossAttnDownBlock①  [ch=320, 64×64→32×32]",
                 "#EEF2FF", "#3949AB")
-    if 10 in enc_ys:
-        enc_grp(9, 10, "CrossAttnDownBlock②  [ch=320→640, 32→16]",
+    if 9 in enc_ys and 6 in enc_ys:
+        enc_grp(9, 6, "CrossAttnDownBlock②  [ch=320→640, 32→16]",
                 "#E8F5E9", "#388E3C")
-    if 6 in enc_ys:
-        enc_grp(5, 6, "CrossAttnDownBlock③  [ch=640→1280, 16→8]",
+    if 5 in enc_ys and 2 in enc_ys:
+        enc_grp(5, 2, "CrossAttnDownBlock③  [ch=640→1280, 16→8]",
                 "#F3E5F5", "#7B1FA2")
     if 0 in enc_ys and 1 in enc_ys:
         enc_grp(1, 0, "DownBlock④  [ch=1280, 8×8  无CrossAttn无Downsample]",
