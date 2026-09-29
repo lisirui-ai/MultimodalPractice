@@ -384,7 +384,7 @@ def draw_vae():
 # ════════════════════════════════════════════════════════
 
 def draw_unet():
-    FW, FH = 34, 42
+    FW, FH = 34, 44   # 增大 FH，为解码器顶端 3 个输出块留出空间
     fig, ax = make_ax(FW, FH)
 
     SBH = 0.90   # 子块高度
@@ -394,19 +394,16 @@ def draw_unet():
     EL   = 0.5;  EX = EL + BW/2
     DL   = FW - BW - 0.5; DX = DL + BW/2
 
-    # ── 从顶部向下计算布局 ─────────────────────────────────
-    # 标题: FH-0.6, FH-1.4
-    # 时间步/文本嵌入条: emb_y
-    # 列标题: emb_y - 0.8
-    # 编码器 Input: top_area_y
-    # conv_in (row15 = pos14): top_area_y - step
-    # row14..row0: 依次向下
-    # MidBlock: 最底部
-
-    emb_y = FH - 3.2     # 时间步嵌入 bottom-y（从顶往下）
-    COL_HDR_Y = emb_y - 1.0
-    INP_Y  = COL_HDR_Y - 0.9   # Input block bottom-y
-    TOP_Y  = INP_Y - step       # conv_in (row15, pos14) bottom-y
+    # ── 顶部布局计算 ──────────────────────────────────────────
+    # 解码器顶端需要 3 个额外块（GN+SiLU、conv_out、Output），位于主行区域上方
+    # 从 emb_y 向下预留足够空间：3*step + SBH（块高） + 1.5（列标题+间距）
+    emb_y   = FH - 3.2            # 嵌入条底边 y（从顶往下），= 40.8
+    TOP_Y   = emb_y - (3*step + SBH + 1.5)  # conv_in(pos=14)行底边 y，= 34.44
+    INP_Y   = TOP_Y + step        # 编码器 Input 块底边 y（TOP_Y 上方 1 step）
+    GN_Y    = INP_Y               # 解码器 GN+SiLU 与 Input 同高（不同列，无重叠）
+    COUT_Y  = GN_Y  + step        # 解码器 conv_out 底边 y
+    OUT_Y   = COUT_Y + step       # 解码器 Output 底边 y
+    COL_HDR_Y = OUT_Y + SBH + 0.8  # 列标题 y，位于 Output 块上方
 
     # pos → bottom-y（从 pos=14 最高到 pos=0 最低）
     def ry(pos):
@@ -456,10 +453,8 @@ def draw_unet():
     av(ax, EX, INP_Y-0.02, TOP_Y+SBH+0.02)   # Input → conv_in（向下）
 
     # ── 顶部：解码器输出块（GN+SiLU, conv_out, Output）────────
-    GN_Y   = TOP_Y                # GroupNorm+SiLU 与 conv_in 同高（顶行）
-    COUT_Y = INP_Y                # conv_out 与 Input 同高
-    OUT_Y  = INP_Y + step         # Output 在 Input 上方
-
+    # GN_Y/COUT_Y/OUT_Y 已在布局区统一计算，此处直接使用
+    # GN_Y = INP_Y（与编码器 Input 同高，不同列，不重叠）
     blk(ax, DL, GN_Y, BW, SBH,
         ["GroupNorm(32, 320)  +  SiLU",
          "[B, 320, 64, 64]"],
@@ -472,8 +467,8 @@ def draw_unet():
         ["噪声预测  ε_θ(x_t, t, c_text)  Output",
          "[B, 4, 64, 64]"],
         base=C["io"], fs=9.5)
-    # 解码器顶部箭头（向上）
-    av(ax, DX, GN_Y+SBH+0.02, COUT_Y-0.02)   # GN → conv_out（向上）
+    # 解码器顶部箭头（向上，连接相邻块）
+    av(ax, DX, GN_Y+SBH+0.02, COUT_Y-0.02)   # GN+SiLU → conv_out（向上）
     av(ax, DX, COUT_Y+SBH+0.02, OUT_Y-0.02)  # conv_out → Output（向上）
 
     # ── 行定义 ─────────────────────────────────────────────
@@ -654,18 +649,16 @@ def draw_unet():
                dashed=(skip_col == C["skx"]))
 
     # ── 垂直连线（编码器，自上而下）─────────────────────────
-    # conv_in (TOP_Y) → row15(pos14) → row14(pos13) → ... → row1(pos0) → MidBlock
-    prev_e = TOP_Y  # conv_in bottom-y
+    # conv_in (TOP_Y) → pos13 → pos12 → ... → pos0 → MidBlock
+    # 无编码器块的行（Upsample 行，pos=14/11/7/3）直接跳过：
+    # 下一个有块的行会自动画出跨越多行的长箭头
+    prev_e = TOP_Y  # conv_in 底边 y（起始点）
     for pos in [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]:
         if pos in enc_ys:
+            # 从上一块底边向下到当前块顶边（箭头始终在块外部间隙中）
             av(ax, EX, prev_e-0.02, enc_ys[pos]+SBH+0.02, col="#444")
-            prev_e = enc_ys[pos]
-        else:
-            # Upsample 行：编码器画一条连接线（无块）
-            next_enc = [enc_ys[p] for p in [pos-1] if p in enc_ys]
-            if next_enc:
-                av(ax, EX, prev_e-0.02, next_enc[0]+SBH+0.02, col="#444")
-                prev_e = next_enc[0]
+            prev_e = enc_ys[pos]   # 更新为当前块底边，供下次迭代使用
+        # else: Upsample 行无编码器块，跳过，prev_e 保持不变
 
     # ── 垂直连线（解码器，自下而上）────────────────────────────
     # MidBlock → row1(pos0) → ... → row15(pos14) → GN+SiLU(TOP_Y)
@@ -675,9 +668,8 @@ def draw_unet():
             av(ax, DX, prev_d+0.02, dec_ys[pos]-0.02, col="#444")
             prev_d = dec_ys[pos]+SBH
 
-    # GN+SiLU (TOP_Y) 往上的解码器连线
-    av(ax, DX, prev_d+0.02, TOP_Y-0.02, col="#444")
-    av(ax, DX, TOP_Y+SBH+0.02, INP_Y-0.02, col="#444")
+    # 解码器 pos=14 → GN+SiLU（向上，GN_Y = INP_Y = TOP_Y+step > TOP_Y+SBH）
+    av(ax, DX, prev_d+0.02, GN_Y-0.02, col="#444")
 
     # ── MidBlock ───────────────────────────────────────────
     MX = (EX + DX)/2  # MidBlock 中心 x
@@ -692,30 +684,37 @@ def draw_unet():
     ]
     MW2 = FW - 2.0; ML2 = 1.0
     mid_ys_list = []
-    cy = MID_BOT_Y + (MID_H - len(mid_specs)*step)/2
+    # 修正：从分组框顶部块位置开始，向下排列，保证所有块都在分组框内
+    # MID_BOT_Y 是分组框底边；顶部块底边 = MID_BOT_Y + MID_H - SBH
+    cy = MID_BOT_Y + MID_H - SBH
     for i, (t1, t2, col) in enumerate(mid_specs):
         blk(ax, ML2, cy, MW2, SBH, [t1, t2], base=col, fs=9.0)
         mid_ys_list.append(cy)
-        if i > 0: av(ax, FW/2, mid_ys_list[-2]-0.02,
-                     mid_ys_list[-1]+SBH+0.02)
-        cy -= step
+        if i > 0: av(ax, FW/2, mid_ys_list[-2]-0.02,   # 向下箭头
+                         mid_ys_list[-1]+SBH+0.02)
+        cy -= step  # 向下（y 减小）排列下一个子块
 
     grp(ax, ML2-0.3, MID_BOT_Y-0.2,
         MW2+0.6, MID_H+0.4,
         "UNetMidBlock2DCrossAttn  [ch=1280, 8×8 最小分辨率]",
         fc="#ECEFF1", ec="#455A64", fs=9.5)
 
-    # 编码器末端 → MidBlock 入口
-    ac(ax, EX, enc_ys.get(0, ry(0))+(-0.05),
-       ML2 + MW2*0.3, mid_ys_list[0]+SBH,
-       col=C["mid"], lw=2.0, rad=0.35,
-       lbl="编码器\n→ MidBlock")
+    # 编码器末端 → MidBlock 入口（沿编码器列 EX 直线向下，避免曲线穿越色块）
+    av(ax, EX, enc_ys.get(0, ry(0))-0.02, mid_ys_list[0]+SBH+0.02, col=C["mid"])
+    # 添加文字标注替代曲线箭头上的标签
+    ax.text(EX - 0.5, (enc_ys.get(0, ry(0)) + mid_ys_list[0]+SBH) / 2,
+            "编码器\n→ MidBlock", ha="right", va="center", fontsize=7.5,
+            color=C["mid"], fontweight="bold",
+            bbox=dict(fc="white", ec=C["mid"], lw=0.8, alpha=0.85,
+                      boxstyle="round,pad=0.2"))
 
-    # MidBlock 出口 → 解码器起点
-    ac(ax, ML2+MW2*0.7, mid_ys_list[-1]+SBH,
-       DL, dec_ys.get(0, ry(0))+SBH,
-       col=C["mid"], lw=2.0, rad=-0.35,
-       lbl="MidBlock\n→ 解码器")
+    # MidBlock 出口 → 解码器：由解码器垂直连线循环（prev_d = MID_BOT_Y+MID_H）统一处理
+    # 添加文字标注于 MidBlock 右侧
+    ax.text(DX + 0.5, (mid_ys_list[-1] + dec_ys.get(0, ry(0))+SBH) / 2,
+            "MidBlock\n→ 解码器", ha="left", va="center", fontsize=7.5,
+            color=C["mid"], fontweight="bold",
+            bbox=dict(fc="white", ec=C["mid"], lw=0.8, alpha=0.85,
+                      boxstyle="round,pad=0.2"))
 
     # ── 分组背景 ──────────────────────────────────────────
     # 编码器分组
